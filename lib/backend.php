@@ -1,10 +1,13 @@
 <?php
 require_once __DIR__ . '/../etc/config.php';
 require_once __DIR__ . '/../lib/youtube.php';
+require_once __DIR__ . '/../lib/database.php';
+require_once __DIR__ . '/../lib/logger.php';
 
 class Backend
 {
     private $youtube;
+    private $db;
 
     private function format_success_result($data)
     {
@@ -16,6 +19,8 @@ class Backend
 
     public function __construct()
     {
+        Logger::init('backend.php');
+        $this->db = new Database();
         $this->youtube = new Youtube();
     }
 
@@ -36,12 +41,14 @@ class Backend
                     break;
             }
         } catch (Exception $e) {
-            return [
-                'result' => 'error',
+            $result = [
                 'code' => $e->getCode(),
                 'message' => $e->getMessage(),
                 'args' => $args,
             ];
+            Logger::log(LOG_ERR, 'got exception in call method:', $result);
+            $result['result'] = 'error';
+            return $result;
         }
     }
 
@@ -54,9 +61,14 @@ class Backend
         }
     }
 
-    public function getChannelVideoList($channel_id, $max = 50, $page = null)
+    public function getChannelVideoList($channel_id)
     {
-        $videos = $this->youtube->getChannelVideoList('UCUGfDbfRIx51kJGGHIFo8Rw', $max);
+        return $this->db->getChannelVideoList($channel_id, true);
+    }
+
+    public function getChannelVideoListDirect($channel_id, $max = 5, $page = null)
+    {
+        $videos = $this->youtube->getChannelVideoList($channel_id, $max, $page);
         $stats = $this->youtube->getVideosStats(array_keys($videos['videos']));
 
         foreach ($stats as $id => $stat) {
