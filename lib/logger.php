@@ -19,10 +19,18 @@ final class Logger
         }
     }
 
-    public static function log($priority, $message)
+    public static function log($priority, $message, ...$args)
     {
         if (!isset(self::$instance)) {
             new self();
+        }
+
+        foreach ($args as $arg) {
+            if (is_string(($arg))) {
+                $message .= ' '. $arg;
+            } else {
+                $message .= ' '. json_encode($arg, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+            }
         }
 
         if ($priority == LOG_DEBUG && self::$debug) {
