@@ -31,15 +31,8 @@ class Database
         $sth = $this->db->prepare('REPLACE INTO videos (id, channel_id, title, description, published_at) ' .
             'VALUES (:id, :channelId, :title, :description, FROM_UNIXTIME(:publishedAt))');
         $sth->execute($video);
-        $sth = $this->db->prepare('REPLACE INTO video_thumbnails (video_id, quolity, url, width, height) ' .
-            'VALUES (:video_id, :quolity, :url, :width, :height)');
-        foreach ($thumbnails as $quolity => $data) {
-            $data = get_object_vars($data);
-            $data['video_id'] = $video['id'];
-            $data['quolity'] = $quolity;
-            $sth->execute($data);
-        }
 
+        $this->saveTumbnails($video['id'], get_object_vars($thumbnails));
         $this->db->commit();
     }
 
@@ -61,10 +54,22 @@ class Database
         $this->db->commit();
     }
 
-    public function getVideoThumbnails($id)
+    public function saveTumbnails($owner_id, array $thumbnails)
     {
-        $sth = $this->db->prepare('SELECT quolity, url, width, height FROM video_thumbnails WHERE video_id = :video_id');
-        $sth->execute(['video_id' => $id]);
+        $sth = $this->db->prepare('REPLACE INTO thumbnails (owner_id, quolity, url, width, height) ' .
+            'VALUES (:owner_id, :quolity, :url, :width, :height)');
+        foreach ($thumbnails as $quolity => $data) {
+            $data = get_object_vars($data);
+            $data['owner_id'] = $owner_id;
+            $data['quolity'] = $quolity;
+            $sth->execute($data);
+        }
+
+    }
+    public function getThumbnails($id)
+    {
+        $sth = $this->db->prepare('SELECT quolity, url, width, height FROM thumbnails WHERE owner_id = :owner_id');
+        $sth->execute(['owner_id' => $id]);
         $result = [];
         while ($row = $sth->fetch(PDO::FETCH_ASSOC)) {
             $result[$row['quolity']] = [
@@ -90,7 +95,7 @@ class Database
     public function getChannelVideoList($channel_id, $details = false)
     {
         $sth = $this->db->prepare('SELECT id, channel_id AS channelId, title, description, UNIX_TIMESTAMP(published_at) AS published_at_timestamp ' .
-            'FROM videos WHERE channel_id = :channel_id');
+            'FROM videos WHERE channel_id = :channel_id ORDER BY published_at DESC');
         $sth->execute(['channel_id' => $channel_id]);
         $videos = [];
         while ($row = $sth->fetch(PDO::FETCH_ASSOC)) {
@@ -98,7 +103,7 @@ class Database
             $row['publistedAt'] = gmdate(DATE_ISO8601, $row['published_at_timestamp']);
             $videos[$id] = $row;
             if ($details) {
-                $videos[$id]['thumbnails'] = $this->getVideoThumbnails($id);
+                $videos[$id]['thumbnails'] = $this->getThumbnails($id);
                 $videos[$id]['statistics'] = $this->getVideosStatistics($id);
             }
         }
