@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/../etc/config.php';
+require_once __DIR__ . '/logger.php';
 require_once __DIR__ . '/../vendor/autoload.php';
 
 class Youtube
@@ -12,6 +13,7 @@ class Youtube
         $client->setDeveloperKey(Config::YOUTUBE_KEY);
 
         $this->client = new Google_Service_YouTube($client);
+        Logger::init('youtube.php');
     }
 
     public function getChannelVideoList($channel_id, $max = 50, $page = null)
@@ -53,6 +55,17 @@ class Youtube
             $stats = array_map('intval', get_object_vars($video->statistics));
             $result[$video->id] = $stats;
         }
+        return $result;
+    }
+
+    function getChannel($id){
+        $params['id'] = $id;
+        $response = $this->client->channels->listChannels('snippet', $params);
+        if (count($response['items']) != 1) {
+            Logger::log(LOG_ERR, 'getChannel: wrong items count', $response);
+            return null;
+        }
+        $result = array_merge(['id' => $response['items'][0]['id']], get_object_vars($response['items'][0]['snippet']));
         return $result;
     }
 }
