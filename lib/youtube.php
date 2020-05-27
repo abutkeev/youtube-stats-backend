@@ -44,21 +44,30 @@ class Youtube
 
     public function getVideosStats(array $video_ids)
     {
-        $params = [
-            'id' => implode(',', $video_ids),
-        ];
+        do {
+            $ids = array_splice($video_ids, 0, 50);
+            try {
+                $params = [
+                    'id' => implode(',', $ids),
+                ];
 
-        $response = $this->client->videos->listVideos('statistics', $params);
+                $response = $this->client->videos->listVideos('statistics', $params);
 
-        $result = array();
-        foreach ($response->items as $video) {
-            $stats = array_map('intval', get_object_vars($video->statistics));
-            $result[$video->id] = $stats;
-        }
-        return $result;
+                $result = array();
+                foreach ($response->items as $video) {
+                    $stats = array_map('intval', get_object_vars($video->statistics));
+                    $result[$video->id] = $stats;
+                }
+                return $result;
+            } catch (Exception $ex) {
+                Logger::log(LOG_ERR, 'getVideosStats failed', $ex->getMessage(), $video_ids);
+                return [];
+            }
+        } while (!empty($video_ids));
     }
 
-    function getChannel($id){
+    public function getChannel($id)
+    {
         $params['id'] = $id;
         $response = $this->client->channels->listChannels('snippet', $params);
         if (count($response['items']) != 1) {
