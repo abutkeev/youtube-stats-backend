@@ -32,9 +32,13 @@ class Backend
             }
 
             $method = array_shift($args);
+            Logger::log(LOG_INFO, 'calling method', $method, $args);
             switch ($method) {
                 case 'channel':
                     return $this->format_success_result($this->callChannel($args));
+                    break;
+                case 'callback':
+                    return $this->callCallback($args);
                     break;
                 default:
                     throw new Exception('unknown method ' . $method, 400);
@@ -50,6 +54,38 @@ class Backend
             $result['result'] = 'error';
             return $result;
         }
+    }
+
+    public function callCallback(array $args)
+    {
+        if (count($args) == 2 && $args[0] == 'youtube' && $args[1] == 'push') {
+            return $this->saveVideo();
+        }
+    }
+
+    public function saveVideo()
+    {
+        $video_ids = [];
+        $raw_data = file_get_contents('php://input');
+        if (!$data = simplexml_load_string($raw_data)) {
+            Logger::log(LOG_ERR, 'xml parsing failed', $raw_data);
+            throw new Exception('xml parsing failed', 400);
+        }
+        foreach ($data->xpath('//yt:videoId') as $value) {
+            $video_id = $value->__toString();
+            Logger::log(LOG_INFO, 'saving video', $video_id);
+            $video = $this->youtube->getVideo($video_id);
+            $this->db->saveVideo($video);
+            array_push($video_ids, $video_id);
+        }
+        if (empty($video_ids)) {
+            Logger::log(LOG_ERR, 'no videos found', $data);
+            throw new Exception('no videos found', 400);
+        }
+        foreach ($this->youtube->getVideosStats($video_ids) as $id => $stat) {
+            $this->db->saveVideoStatistics($id, $stat);
+        }
+        return $this->format_success_result($video_ids);
     }
 
     public function callChannel(array $args)

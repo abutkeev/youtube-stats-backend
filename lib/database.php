@@ -14,26 +14,36 @@ class Database
 
     public function saveVideo(array $video)
     {
-        $thumbnails = [];
-        if (array_key_exists('thumbnails', $video)) {
+        try {
+            $thumbnails = [];
+            if (array_key_exists('thumbnails', $video)) {
 
-            $thumbnails = $video['thumbnails'];
-            unset($video['thumbnails']);
+                $thumbnails = $video['thumbnails'];
+                unset($video['thumbnails']);
 
+            }
+            unset($video['liveBroadcastContent']);
+            unset($video['channelTitle']);
+            unset($video['tags']);
+            unset($video['localized']);
+            unset($video['categoryId']);
+            unset($video['defaultAudioLanguage']);
+            unset($video['defaultLanguage']);
+
+            $video['publishedAt'] = date_timestamp_get(date_create($video['publishedAt']));
+
+            $this->db->beginTransaction();
+
+            $sth = $this->db->prepare('REPLACE INTO videos (id, channel_id, title, description, published_at) ' .
+                'VALUES (:id, :channelId, :title, :description, FROM_UNIXTIME(:publishedAt))');
+            $sth->execute($video);
+
+            $this->saveTumbnails($video['id'], get_object_vars($thumbnails));
+            $this->db->commit();
+        } catch (PDOException $ex) {
+            Logger::log(LOG_ERR, 'database excaption', $ex->getMessage(), $video, array_keys($video));
+            throw $ex;
         }
-        unset($video['liveBroadcastContent']);
-        unset($video['channelTitle']);
-
-        $video['publishedAt'] = date_timestamp_get(date_create($video['publishedAt']));
-
-        $this->db->beginTransaction();
-
-        $sth = $this->db->prepare('REPLACE INTO videos (id, channel_id, title, description, published_at) ' .
-            'VALUES (:id, :channelId, :title, :description, FROM_UNIXTIME(:publishedAt))');
-        $sth->execute($video);
-
-        $this->saveTumbnails($video['id'], get_object_vars($thumbnails));
-        $this->db->commit();
     }
 
     public function saveVideoStatistics($video_id, array $statistics)

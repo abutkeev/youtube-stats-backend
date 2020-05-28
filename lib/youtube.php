@@ -69,12 +69,37 @@ class Youtube
     public function getChannel($id)
     {
         $params['id'] = $id;
-        $response = $this->client->channels->listChannels('snippet', $params);
+        $response = $this->client->channels->listChannels('snippet,statistics', $params);
         if (count($response['items']) != 1) {
             Logger::log(LOG_ERR, 'getChannel: wrong items count', $response);
             return null;
         }
         $result = array_merge(['id' => $response['items'][0]['id']], get_object_vars($response['items'][0]['snippet']));
+        $result['statistics'] = $response['items'][0]['statistics'];
         return $result;
+    }
+
+    public function channelPushSubscribe($channel_id, $callback_url)
+    {
+        $s = new Pubsubhubbub\Subscriber\Subscriber('https://pubsubhubbub.appspot.com/subscribe', $callback_url);
+        return $s->subscribe('https://www.youtube.com/xml/feeds/videos.xml?channel_id='. $channel_id);
+    }
+   
+    public function channelPushUnsubscribe($channel_id, $callback_url)
+    {
+        $s = new Pubsubhubbub\Subscriber\Subscriber('https://pubsubhubbub.appspot.com/subscribe', $callback_url);
+        return $s->unsubscribe('https://www.youtube.com/xml/feeds/videos.xml?channel_id='. $channel_id);
+    }
+
+    function getVideo($id) {
+        $params = [
+            'id' => $id,
+        ];
+        $response = $this->client->videos->listVideos('snippet', $params);
+        if (count($response->items) != 1) {
+            Logger::log(LOG_ERR, 'invalid items count', $response);
+            return [];
+        }
+        return array_merge(['id' => $id],get_object_vars($response->items[0]->snippet));
     }
 }
