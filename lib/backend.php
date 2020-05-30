@@ -41,7 +41,7 @@ class Backend
                     return $this->callCallback($args);
                     break;
                 default:
-                    throw new Exception('unknown method ' . $method, 400);
+                    throw new Exception('unknown method ' . $method, 404);
                     break;
             }
         } catch (Exception $e) {
@@ -59,8 +59,30 @@ class Backend
     public function callCallback(array $args)
     {
         if (count($args) == 2 && $args[0] == 'youtube' && $args[1] == 'push') {
-            return $this->saveVideo();
+            if (empty($_GET)) {
+                return $this->saveVideo();
+            } else {
+                return $this->verifySubscription($_GET);
+            }
         }
+
+        Logger::log(LOG_ERR, 'unknown callback', $args);
+        return [
+            'result' => 'error',
+            'message' => 'unknown callback',
+            'code' => 404,
+            'args' => $args,
+        ];
+
+    }
+
+    function verifySubscription($args) {
+        Logger::log(LOG_INFO, 'verifing subscription', $args);
+        $response['raw'] = true;
+        if ($args['hub_mode'] == 'subscribe') {
+            $response['data'] = $args['hub_challenge'];
+        }
+        return $response;
     }
 
     public function saveVideo()
