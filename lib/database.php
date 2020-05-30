@@ -76,6 +76,13 @@ class Database
         }
 
     }
+
+    public function saveSubscriptionExpiration($channel_id, $expiration)
+    {
+        $this->db->prepare('REPLACE INTO channel_subscription_expiration (channel_id, expiration) ' .
+            'VALUES (:channel_id, FROM_UNIXTIME(:expiration))')->execute(['channel_id' => $channel_id, 'expiration' => $expiration]);
+    }
+
     public function getThumbnails($id)
     {
         $sth = $this->db->prepare('SELECT quolity, url, width, height FROM thumbnails WHERE owner_id = :owner_id');

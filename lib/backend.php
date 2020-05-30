@@ -76,11 +76,25 @@ class Backend
 
     }
 
-    function verifySubscription($args) {
+    public function verifySubscription($args)
+    {
         Logger::log(LOG_INFO, 'verifing subscription', $args);
         $response['raw'] = true;
         if ($args['hub_mode'] == 'subscribe') {
-            $response['data'] = $args['hub_challenge'];
+            $topic = parse_url($args['hub_topic']);
+            if ($topic['host'] == 'www.youtube.com' && $topic['path'] = '/xml/feeds/videos.xml') {
+                $topic_args = [];
+                parse_str($topic['query'], $topic_args);
+                $channel_id = $topic_args['channel_id'];
+                $expiration = time() + intval($args['hub_lease_seconds']);
+                $this->db->saveSubscriptionExpiration($channel_id, $expiration);
+                Logger::log(LOG_INFO, 'approving subscription for channel', $channel_id, 'expired at', date(DATE_ISO8601, $expiration));
+                $response['data'] = $args['hub_challenge'];
+            } else {
+                Logger::log(LOG_ERR, 'invalid topic', $topic);
+                $response['code'] = 403;
+                $response['data'] = 'invalid topic';
+            }
         }
         return $response;
     }
