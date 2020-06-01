@@ -50,7 +50,7 @@ class Backend
                 'message' => $e->getMessage(),
                 'args' => $args,
             ];
-            Logger::log(LOG_ERR, 'got exception in call method:', $result);
+            Logger::log(LOG_ERR, 'got exception in call method:', $result, $e->getTrace());
             $result['result'] = 'error';
             return $result;
         }
@@ -119,7 +119,7 @@ class Backend
             throw new Exception('no videos found', 400);
         }
         foreach ($this->youtube->getVideosStats($video_ids) as $id => $stat) {
-            $this->db->saveVideoStatistics($id, $stat);
+            $this->db->saveStatistics($id, $stat);
         }
         return $this->format_success_result($video_ids);
     }
