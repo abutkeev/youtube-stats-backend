@@ -44,15 +44,15 @@ class Database
         }
     }
 
-    public function saveVideoStatistics($video_id, array $statistics)
+    public function saveStatistics($owner_id, array $statistics)
     {
         $this->db->beginTransaction();
-        $sth = $this->db->prepare('REPLACE INTO video_statistics (video_id, counter, value) VALUES (:video_id, :counter, :value)');
-        $sth_history = $this->db->prepare('INSERT INTO video_statistics_history (video_id, counter, value) ' .
-            'VALUES (:video_id, :counter, :value)');
+        $sth = $this->db->prepare('REPLACE INTO statistics (owner_id, counter, value) VALUES (:owner_id, :counter, :value)');
+        $sth_history = $this->db->prepare('INSERT INTO statistics_history (owner_id, counter, value) ' .
+            'VALUES (:owner_id, :counter, :value)');
         foreach ($statistics as $counter => $value) {
             $data = [
-                'video_id' => $video_id,
+                'owner_id' => $owner_id,
                 'counter' => $counter,
                 'value' => $value,
             ];
@@ -60,6 +60,27 @@ class Database
             $sth_history->execute($data);
         }
         $this->db->commit();
+    }
+
+    public function saveChannel(array $channel)
+    {
+        $data = [
+            'id' => $channel['id'],
+            'title' => $channel['title'],
+            'url' => $channel['customUrl'],
+            'description' => $channel['description'],
+            'created' => date_timestamp_get(date_create($channel['publishedAt'])),
+        ];
+        $this->db->beginTransaction();
+        $this->db->prepare('REPLACE INTO channels (id, title, url, description, created) ' .
+            'VALUES (:id, :title, :url, :description, FROM_UNIXTIME(:created))')->execute($data);
+        if (array_key_exists('thumbnails', $channel)) {
+            $this->saveTumbnails($channel['id'], get_object_vars($channel['thumbnails']));
+        }
+        $this->db->commit();
+        if (array_key_exists('statistics', $channel)) {
+            $this->saveStatistics($channel['id'], get_object_vars($channel['statistics']));
+        }
     }
 
     public function saveTumbnails($owner_id, array $thumbnails)
@@ -96,10 +117,10 @@ class Database
         return $result;
     }
 
-    public function getVideosStatistics($id)
+    public function getStatistics($id)
     {
-        $sth = $this->db->prepare('SELECT counter, value FROM video_statistics WHERE video_id = :video_id');
-        $sth->execute(['video_id' => $id]);
+        $sth = $this->db->prepare('SELECT counter, value FROM statistics WHERE owner_id = :owner_id');
+        $sth->execute(['owner_id' => $id]);
         $result = [];
         while ($row = $sth->fetch(PDO::FETCH_ASSOC)) {
             $result[$row['counter']] = intval($row['value']);
@@ -119,7 +140,7 @@ class Database
             $videos[$id] = $row;
             if ($details) {
                 $videos[$id]['thumbnails'] = $this->getThumbnails($id);
-                $videos[$id]['statistics'] = $this->getVideosStatistics($id);
+                $videos[$id]['statistics'] = $this->getStatistics($id);
             }
         }
         return [
@@ -129,12 +150,12 @@ class Database
 
     public function getVideosStatsLastTime()
     {
-        $sth = $this->db->prepare('SELECT video_id, unix_timestamp(max(time)) AS last_timestamp FROM video_statistics_history GROUP BY video_id');
+        $sth = $this->db->prepare('SELECT owner_id, unix_timestamp(max(time)) AS last_timestamp FROM statistics_history GROUP BY owner_id');
         $sth->execute();
 
         $result = [];
         while ($row = $sth->fetch(PDO::FETCH_ASSOC)) {
-            $result[$row['video_id']] = $row['last_timestamp'];
+            $result[$row['owner_id']] = $row['last_timestamp'];
         }
         return $result;
     }
