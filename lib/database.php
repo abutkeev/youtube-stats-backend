@@ -17,10 +17,8 @@ class Database
         try {
             $thumbnails = [];
             if (array_key_exists('thumbnails', $video)) {
-
                 $thumbnails = $video['thumbnails'];
                 unset($video['thumbnails']);
-
             }
             unset($video['liveBroadcastContent']);
             unset($video['channelTitle']);
