@@ -54,7 +54,7 @@ class Database
             $data = [
                 'owner_id' => $owner_id,
                 'counter' => $counter,
-                'value' => $value,
+                'value' => intval($value),
             ];
             $sth->execute($data);
             $sth_history->execute($data);
