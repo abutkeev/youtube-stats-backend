@@ -15,29 +15,27 @@ class Database
     public function saveVideo(array $video)
     {
         try {
-            $thumbnails = [];
-            if (array_key_exists('thumbnails', $video)) {
-                $thumbnails = $video['thumbnails'];
-                unset($video['thumbnails']);
-            }
-            unset($video['liveBroadcastContent']);
-            unset($video['channelTitle']);
-            unset($video['tags']);
-            unset($video['localized']);
-            unset($video['categoryId']);
-            unset($video['defaultAudioLanguage']);
-            unset($video['defaultLanguage']);
-
-            $video['publishedAt'] = date_timestamp_get(date_create($video['publishedAt']));
+            $data = [
+                'id' => $video['id'],
+                'channel_id' => $video['channelId'],
+                'title' => $video['title'],
+                'description' => $video['description'],
+                'created' => date_timestamp_get(date_create($video['publishedAt'])),
+            ];
 
             $this->db->beginTransaction();
 
-            $sth = $this->db->prepare('REPLACE INTO videos (id, channel_id, title, description, published_at) ' .
-                'VALUES (:id, :channelId, :title, :description, FROM_UNIXTIME(:publishedAt))');
-            $sth->execute($video);
+            $this->db->prepare('REPLACE INTO videos (id, channel_id, title, description, created) ' .
+                'VALUES (:id, :channel_id, :title, :description, FROM_UNIXTIME(:created))')->execute($data);
 
-            $this->saveTumbnails($video['id'], get_object_vars($thumbnails));
+            if (array_key_exists('thumbnails', $video)) {
+                $this->saveTumbnails($video['id'], get_object_vars($video['thumbnails']));
+            }
             $this->db->commit();
+            if (array_key_exists('statistics', $video)) {
+                $this->saveStatistics($video['id'], get_object_vars($video['statistics']));
+            }
+
         } catch (PDOException $ex) {
             Logger::log(LOG_ERR, 'database excaption', $ex->getMessage(), $video, array_keys($video));
             throw $ex;
@@ -130,13 +128,13 @@ class Database
 
     public function getChannelVideoList($channel_id, $details = false)
     {
-        $sth = $this->db->prepare('SELECT id, channel_id AS channelId, title, description, UNIX_TIMESTAMP(published_at) AS published_at_timestamp ' .
-            'FROM videos WHERE channel_id = :channel_id ORDER BY published_at DESC');
+        $sth = $this->db->prepare('SELECT id, channel_id AS channelId, title, description, UNIX_TIMESTAMP(created) AS created ' .
+            'FROM videos WHERE channel_id = :channel_id ORDER BY created DESC');
         $sth->execute(['channel_id' => $channel_id]);
         $videos = [];
         while ($row = $sth->fetch(PDO::FETCH_ASSOC)) {
             $id = $row['id'];
-            $row['publistedAt'] = gmdate(DATE_ISO8601, $row['published_at_timestamp']);
+            $row['publistedAt'] = gmdate(DATE_ISO8601, $row['created']);
             $videos[$id] = $row;
             if ($details) {
                 $videos[$id]['thumbnails'] = $this->getThumbnails($id);
