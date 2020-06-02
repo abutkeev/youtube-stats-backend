@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/../etc/config.php';
+require_once __DIR__ . '/logger.php';
 
 class Database
 {
