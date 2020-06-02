@@ -52,6 +52,9 @@ class Database
             $this->db->prepare('REPLACE INTO videos (id, channel_id, title, description, created) ' .
                 'VALUES (:id, :channel_id, :title, :description, FROM_UNIXTIME(:created))')->execute($data);
 
+            $this->db->prepare('INSERT INTO videos_history (id, channel_id, title, description, created) ' .
+                'VALUES (:id, :channel_id, :title, :description, FROM_UNIXTIME(:created))')->execute($data);
+
             if (array_key_exists('thumbnails', $video)) {
                 $this->saveTumbnails($video['id'], get_object_vars($video['thumbnails']));
             }
