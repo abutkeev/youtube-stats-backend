@@ -8,7 +8,8 @@ class Database
 
     private function get_timestamps($id_name, $timestamp_name, $table_name)
     {
-        $sth = $this->db->prepare("SELECT $id_name, UNIX_TIMESTAMP($timestamp_name) AS $timestamp_name FROM $table_name FOR UPDATE");
+        $sth = $this->db->
+        prepare("SELECT $id_name, UNIX_TIMESTAMP(MAX($timestamp_name)) AS $timestamp_name FROM $table_name GROUP BY $id_name FOR UPDATE");
         $sth->execute();
         $result = [];
         while ($row = $sth->fetch(PDO::FETCH_ASSOC)) {
