@@ -66,32 +66,56 @@ class Youtube
         } while (!empty($video_ids));
     }
 
-    public function getChannel($id)
+    public function getObject($id, $type, $part = 'snippet')
     {
         $params['id'] = $id;
-        $response = $this->client->channels->listChannels('snippet,statistics', $params);
-        if (count($response['items']) != 1) {
-            Logger::log(LOG_ERR, 'getChannel: wrong items count', $response);
-            return null;
+
+        switch ($type) {
+            case 'channel':
+                $response = $this->client->channels->listChannels($part, $params);
+                break;
+            case 'video':
+                $response = $this->client->videos->listVideos($part, $params);
+                break;
+            default:
+                throw new Exception('unknown object type ' + $type);
+                break;
         }
-        $result = array_merge(['id' => $response['items'][0]['id']], get_object_vars($response['items'][0]['snippet']));
-        $result['statistics'] = $response['items'][0]['statistics'];
+
+        if (count($response['items']) != 1) {
+            Logger::log(LOG_ERR, 'wrong items count', $id, $type, $part, $response);
+            throw new Exception('wrong items count');
+        }
+
+        $object = $response['items'][0];
+
+        $result['id'] = $id;
+
+        if (property_exists($object, 'snippet')) {
+            $result = array_merge(['id' => $object['id']], get_object_vars($object['snippet']));
+        }
+
+        if (property_exists($object, 'statistics')) {
+            $result['statistics'] = get_object_vars($object['statistics']);
+        }
+
         return $result;
     }
 
     public function channelPushSubscribe($channel_id, $callback_url)
     {
         $s = new Pubsubhubbub\Subscriber\Subscriber('https://pubsubhubbub.appspot.com/subscribe', $callback_url);
-        return $s->subscribe('https://www.youtube.com/xml/feeds/videos.xml?channel_id='. $channel_id);
+        return $s->subscribe('https://www.youtube.com/xml/feeds/videos.xml?channel_id=' . $channel_id);
     }
-   
+
     public function channelPushUnsubscribe($channel_id, $callback_url)
     {
         $s = new Pubsubhubbub\Subscriber\Subscriber('https://pubsubhubbub.appspot.com/subscribe', $callback_url);
-        return $s->unsubscribe('https://www.youtube.com/xml/feeds/videos.xml?channel_id='. $channel_id);
+        return $s->unsubscribe('https://www.youtube.com/xml/feeds/videos.xml?channel_id=' . $channel_id);
     }
 
-    function getVideo($id) {
+    public function getVideo($id)
+    {
         $params = [
             'id' => $id,
         ];
@@ -100,6 +124,6 @@ class Youtube
             Logger::log(LOG_ERR, 'invalid items count', $response);
             return [];
         }
-        return array_merge(['id' => $id],get_object_vars($response->items[0]->snippet));
+        return array_merge(['id' => $id], get_object_vars($response->items[0]->snippet));
     }
 }

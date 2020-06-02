@@ -6,12 +6,34 @@ class Database
 {
     private $db;
 
+    private function get_timestamps($id_name, $timestamp_name, $table_name)
+    {
+        $sth = $this->db->prepare("SELECT $id_name, UNIX_TIMESTAMP($timestamp_name) AS $timestamp_name FROM $table_name FOR UPDATE");
+        $sth->execute();
+        $result = [];
+        while ($row = $sth->fetch(PDO::FETCH_ASSOC)) {
+            $result[$row[$id_name]] = intval($row[$timestamp_name]);
+        }
+        return $result;
+
+    }
+
     public function __construct()
     {
         Logger::init('database.php');
         $dboptions = array(PDO::MYSQL_ATTR_INIT_COMMAND => 'SET NAMES utf8mb4');
         $this->db = new PDO('mysql:dbname=' . Config::DB_NAME . ';host=' . Config::DB_HOST, Config::DB_LOGIN, Config::DB_PASSWORD, $dboptions);
         $this->db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+    }
+
+    public function begin()
+    {
+        $this->db->beginTransaction();
+    }
+
+    public function commit()
+    {
+        $this->db->commit();
     }
 
     public function saveVideo(array $video)
@@ -46,7 +68,6 @@ class Database
 
     public function saveStatistics($owner_id, array $statistics)
     {
-        $this->db->beginTransaction();
         $sth = $this->db->prepare('REPLACE INTO statistics (owner_id, counter, value) VALUES (:owner_id, :counter, :value)');
         $sth_history = $this->db->prepare('INSERT INTO statistics_history (owner_id, counter, value) ' .
             'VALUES (:owner_id, :counter, :value)');
@@ -59,7 +80,6 @@ class Database
             $sth->execute($data);
             $sth_history->execute($data);
         }
-        $this->db->commit();
     }
 
     public function saveChannel(array $channel)
@@ -79,7 +99,7 @@ class Database
         }
         $this->db->commit();
         if (array_key_exists('statistics', $channel)) {
-            $this->saveStatistics($channel['id'], get_object_vars($channel['statistics']));
+            $this->saveStatistics($channel['id'], $channel['statistics']);
         }
     }
 
@@ -128,6 +148,11 @@ class Database
         return $result;
     }
 
+    public function getStatisticsUpdateTimestamps()
+    {
+        return $this->get_timestamps('owner_id', 'modified', 'statistics');
+    }
+
     public function getChannelVideoList($channel_id, $details = false)
     {
         $sth = $this->db->prepare('SELECT id, channel_id AS channelId, title, description, UNIX_TIMESTAMP(created) AS created ' .
@@ -148,15 +173,20 @@ class Database
         ];
     }
 
-    public function getVideosStatsLastTime()
+    public function getObjectCreated($type)
     {
-        $sth = $this->db->prepare('SELECT owner_id, unix_timestamp(max(time)) AS last_timestamp FROM statistics_history GROUP BY owner_id');
-        $sth->execute();
-
-        $result = [];
-        while ($row = $sth->fetch(PDO::FETCH_ASSOC)) {
-            $result[$row['owner_id']] = $row['last_timestamp'];
+        switch ($type) {
+            case 'channel':
+                return $this->get_timestamps('id', 'created', 'channels');
+            case 'video':
+                return $this->get_timestamps('id', 'created', 'videos');
+            default:
+                throw new Exception('unknown object '+$type);
         }
-        return $result;
+    }
+
+    public function getChannelsSubscriptionExpiration()
+    {
+        return $this->get_timestamps('channel_id', 'expiration', 'channel_subscription_expiration');
     }
 }
