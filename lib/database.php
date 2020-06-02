@@ -64,7 +64,7 @@ class Database
             }
 
         } catch (PDOException $ex) {
-            Logger::log(LOG_ERR, 'database excaption', $ex->getMessage(), $video, array_keys($video));
+            Logger::log(LOG_ERR, 'database exception', $ex->getMessage(), $video, array_keys($video));
             throw $ex;
         }
     }
