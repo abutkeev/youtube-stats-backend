@@ -9,7 +9,7 @@ class Database
     private function get_timestamps($id_name, $timestamp_name, $table_name)
     {
         $sth = $this->db->
-        prepare("SELECT $id_name, UNIX_TIMESTAMP(MAX($timestamp_name)) AS $timestamp_name FROM $table_name GROUP BY $id_name FOR UPDATE");
+            prepare("SELECT $id_name, UNIX_TIMESTAMP(MAX($timestamp_name)) AS $timestamp_name FROM $table_name GROUP BY $id_name FOR UPDATE");
         $sth->execute();
         $result = [];
         while ($row = $sth->fetch(PDO::FETCH_ASSOC)) {
@@ -155,6 +155,21 @@ class Database
     public function getStatisticsUpdateTimestamps()
     {
         return $this->get_timestamps('owner_id', 'modified', 'statistics');
+    }
+
+    public function getChannels()
+    {
+        $sth = $this->db->prepare('SELECT id, title, url AS customUrl, description, UNIX_TIMESTAMP(created) AS created FROM channels');
+        $sth->execute();
+        $result = [];
+        while ($row = $sth->fetch(PDO::FETCH_ASSOC)) {
+            $id = $row['id'];
+            $row['publistedAt'] = gmdate(DATE_ISO8601, $row['created']);
+            $row['thumbnails'] = $this->getThumbnails($id);
+            $row['statistics'] = $this->getStatistics($id);
+            $result['id'] = $row;
+        }
+        return $result;
     }
 
     public function getChannelVideoList($channel_id, $details = false)

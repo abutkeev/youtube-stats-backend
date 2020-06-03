@@ -37,6 +37,9 @@ class Backend
                 case 'channel':
                     return $this->format_success_result($this->callChannel($args));
                     break;
+                case 'channels':
+                    return $this->format_success_result($this->callChannels($args));
+                    break;
                 case 'callback':
                     return $this->callCallback($args);
                     break;
@@ -56,6 +59,21 @@ class Backend
         }
     }
 
+    public function callChannels(array $args)
+    {
+        if (empty($args)) {
+            return $this->db->getChannels();
+        }
+
+        Logger::log(LOG_ERR, 'invalid channels args', $args);
+        return [
+            'result' => 'error',
+            'message' => 'invalid args',
+            'code' => 404,
+            'args' => $args,
+        ];
+    }
+
     public function callCallback(array $args)
     {
         if (count($args) == 2 && $args[0] == 'youtube' && $args[1] == 'push') {
@@ -73,7 +91,6 @@ class Backend
             'code' => 404,
             'args' => $args,
         ];
-
     }
 
     public function verifySubscription($args)
