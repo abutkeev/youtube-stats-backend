@@ -167,7 +167,7 @@ class Database
             $row['publistedAt'] = gmdate(DATE_ISO8601, $row['created']);
             $row['thumbnails'] = $this->getThumbnails($id);
             $row['statistics'] = $this->getStatistics($id);
-            $result['id'] = $row;
+            $result[$id] = $row;
         }
         return $result;
     }
