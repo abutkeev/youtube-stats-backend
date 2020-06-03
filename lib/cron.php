@@ -19,27 +19,27 @@ class Cron
     public function shouldSaveVideoStatistics($id, $created, $last_updated)
     {
         $age = time() - $created;
-        $update_age = time() - $last_updated;
+        $update_age = round((time() - $last_updated) / 60);
 
         Logger::log(LOG_DEBUG, 'checking video', ['id' => $id, 'age' => $age, 'update_age' => $update_age,
             'created' => date(DATE_W3C, $created), 'last_updated' => date(DATE_W3C, $last_updated)]);
 
-        if ($age > 86400 * 7 * 14 && $update_age < 86400) {
+        if ($age > 86400 * 14 && $update_age < 60 * 24) {
             Logger::log(LOG_DEBUG, 'video', $id, 'published more then 2 weeks ago, saving stats each day');
             return false;
         }
 
-        if ($age > 86400 * 7 && $update_age < 60 * 60) {
+        if ($age > 86400 * 7 && $update_age < 60) {
             Logger::log(LOG_DEBUG, 'video', $id, 'published more then week ago, saving stats each hour');
             return false;
         }
 
-        if ($age > 86400 && $update_age < 60 * 15) {
+        if ($age > 86400 && $update_age < 15) {
             Logger::log(LOG_DEBUG, 'video', $id, 'published more then day ago, saving stats each 15 mins');
             return false;
         }
 
-        if ($update_age < 60 * 5) {
+        if ($update_age < 5) {
             Logger::log(LOG_DEBUG, 'video', $id, 'published less then day ago, saving stats each 5 mins');
             return false;
         }
@@ -49,8 +49,8 @@ class Cron
 
     public function shouldSaveChannelStatistics($id, $last_updated)
     {
-        $update_age = time() - $last_updated;
-        if ($update_age < 60 * 60) {
+        $update_age = round((time() - $last_updated) / 60);
+        if ($update_age < 60) {
             Logger::log(LOG_DEBUG, 'channel', $id, 'updated less then hour ago, skipping');
             return false;
         }
