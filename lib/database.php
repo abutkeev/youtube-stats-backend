@@ -4,6 +4,8 @@ require_once __DIR__ . '/logger.php';
 
 class Database
 {
+    const DATE_JS = 'Y-m-d\TH:i:s\Z';
+
     private $db;
 
     private function get_timestamps($id_name, $timestamp_name, $table_name)
@@ -164,7 +166,7 @@ class Database
         $result = [];
         while ($row = $sth->fetch(PDO::FETCH_ASSOC)) {
             $id = $row['id'];
-            $row['publistedAt'] = gmdate(DATE_ISO8601, $row['created']);
+            $row['publistedAt'] = gmdate(self::DATE_JS, $row['created']);
             $row['thumbnails'] = $this->getThumbnails($id);
             $row['statistics'] = $this->getStatistics($id);
             $result[$id] = $row;
@@ -180,7 +182,7 @@ class Database
         $videos = [];
         while ($row = $sth->fetch(PDO::FETCH_ASSOC)) {
             $id = $row['id'];
-            $row['publishedAt'] = gmdate(DATE_ISO8601, $row['created']);
+            $row['publishedAt'] = gmdate(self::DATE_JS, $row['created']);
             $videos[$id] = $row;
             if ($details) {
                 $videos[$id]['thumbnails'] = $this->getThumbnails($id);
