@@ -180,7 +180,7 @@ class Database
         $videos = [];
         while ($row = $sth->fetch(PDO::FETCH_ASSOC)) {
             $id = $row['id'];
-            $row['publistedAt'] = gmdate(DATE_ISO8601, $row['created']);
+            $row['publishedAt'] = gmdate(DATE_ISO8601, $row['created']);
             $videos[$id] = $row;
             if ($details) {
                 $videos[$id]['thumbnails'] = $this->getThumbnails($id);
