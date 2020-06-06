@@ -145,6 +145,11 @@ class Backend
     {
         if (count($args) == 2 && $args[1] == 'video') {
             return $this->getChannelVideoList($args[0]);
+        } else if (count(($args) == 1)) {
+            if ($result = $this->db->getChannel($args[0])) {
+                return $result;
+            }
+            throw new Exception('channel not found', 404);
         } else {
             throw new Exception('not implemented', 400);
         }

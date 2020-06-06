@@ -174,6 +174,23 @@ class Database
         return $result;
     }
 
+    public function getChannel($channel_id)
+    {
+        $sth = $this->db->prepare('SELECT id, title, url AS customUrl, description, UNIX_TIMESTAMP(created) AS created FROM channels ' .
+            'WHERE id = :channel_id');
+        $sth->execute(['channel_id' => $channel_id]);
+        while ($row = $sth->fetch(PDO::FETCH_ASSOC)) {
+            $id = $row['id'];
+            if ($id == $channel_id) {
+                $row['publistedAt'] = gmdate(self::DATE_JS, $row['created']);
+                $row['thumbnails'] = $this->getThumbnails($id);
+                $row['statistics'] = $this->getStatistics($id);
+                return $row;
+            }
+        }
+        return false;
+    }
+
     public function getChannelVideoList($channel_id, $details = false)
     {
         $sth = $this->db->prepare('SELECT id, channel_id AS channelId, title, description, UNIX_TIMESTAMP(created) AS created ' .
