@@ -256,6 +256,26 @@ class Database
         return false;
     }
 
+    public function getVideo($id)
+    {
+        $sth = $this->select('videos',
+            ['id', 'channel_id AS channelId', 'title', 'description', 'created'],
+            [
+                'where' => ['id' => $id],
+                'types' => ['created' => 'time'],
+            ]
+        );
+        while ($row = $sth->fetch(PDO::FETCH_ASSOC)) {
+            if ($row['id'] == $id) {
+                $row['publistedAt'] = gmdate(self::DATE_JS, $row['created']);
+                $row['thumbnails'] = $this->getThumbnails($id);
+                $row['statistics'] = $this->getStatistics($id);
+                return $row;
+            }
+        }
+        return false;
+    }
+
     public function getChannelVideoList($channel_id, $details = false)
     {
         $sth = $this->db->prepare('SELECT id, channel_id AS channelId, title, description, UNIX_TIMESTAMP(created) AS created ' .

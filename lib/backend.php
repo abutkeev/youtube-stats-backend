@@ -37,6 +37,9 @@ class Backend
                 case 'channel':
                     return $this->format_success_result($this->callChannel($args));
                     break;
+                case 'video':
+                    return $this->format_success_result($this->callVideo($args));
+                    break;
                 case 'channels':
                     return $this->format_success_result($this->callChannels($args));
                     break;
@@ -157,6 +160,25 @@ class Backend
                 return $result;
             }
             throw new Exception('channel not found', 404);
+        } else {
+            throw new Exception('not implemented', 400);
+        }
+    }
+
+    public function callVideo(array $args)
+    {
+        if (count($args) == 2) {
+            switch ($args[1]) {
+                case 'statistics':
+                    return $this->db->getStatisticsHistory($args[0]);
+                default:
+                    throw new Exception('not implemented', 400);
+            }
+        } else if (count(($args) == 1)) {
+            if ($result = $this->db->getVideo($args[0])) {
+                return $result;
+            }
+            throw new Exception('video not found', 404);
         } else {
             throw new Exception('not implemented', 400);
         }
