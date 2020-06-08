@@ -247,7 +247,7 @@ class Database
         while ($row = $sth->fetch(PDO::FETCH_ASSOC)) {
             $id = $row['id'];
             if ($id == $channel_id) {
-                $row['publistedAt'] = gmdate(self::DATE_JS, $row['created']);
+                $row['publishedAt'] = gmdate(self::DATE_JS, $row['created']);
                 $row['thumbnails'] = $this->getThumbnails($id);
                 $row['statistics'] = $this->getStatistics($id);
                 return $row;
@@ -267,7 +267,7 @@ class Database
         );
         while ($row = $sth->fetch(PDO::FETCH_ASSOC)) {
             if ($row['id'] == $id) {
-                $row['publistedAt'] = gmdate(self::DATE_JS, $row['created']);
+                $row['publishedAt'] = gmdate(self::DATE_JS, $row['created']);
                 $row['thumbnails'] = $this->getThumbnails($id);
                 $row['statistics'] = $this->getStatistics($id);
                 return $row;
