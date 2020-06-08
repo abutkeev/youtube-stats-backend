@@ -143,8 +143,15 @@ class Backend
 
     public function callChannel(array $args)
     {
-        if (count($args) == 2 && $args[1] == 'video') {
-            return $this->getChannelVideoList($args[0]);
+        if (count($args) == 2) {
+            switch ($args[1]) {
+                case 'video':
+                    return $this->getChannelVideoList($args[0]);
+                case 'statistics':
+                    return $this->db->getStatisticsHistory($args[0]);
+                default:
+                    throw new Exception('not implemented', 400);
+            }
         } else if (count(($args) == 1)) {
             if ($result = $this->db->getChannel($args[0])) {
                 return $result;

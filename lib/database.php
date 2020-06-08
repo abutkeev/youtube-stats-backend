@@ -21,6 +21,55 @@ class Database
 
     }
 
+    private function select($table, array $rows, array $options = [])
+    {
+        $query = ['SELECT'];
+        $types = [];
+        if (array_key_exists('types', $options) && is_array($options['types'])) {
+            $types = $options['types'];
+        }
+
+        $typed_rows = [];
+        foreach ($rows as $row) {
+            if (array_key_exists($row, $types)) {
+                switch ($types[$row]) {
+                    case 'time':
+                        array_push($typed_rows, "UNIX_TIMESTAMP($row) AS $row");
+                        continue 2;
+                    default:
+                        throw new Exception('unknown type ' . $types[$row]);
+                }
+            }
+            array_push($typed_rows, $row);
+        }
+        $query[] = implode(', ', $typed_rows);
+        $query[] = "FROM $table";
+
+        $in_args = [];
+        $where = [];
+        if (array_key_exists('where', $options)) {
+            foreach ($options['where'] as $left => $right) {
+                array_push($where, "$left = :$left");
+                $in_args[$left] = $right;
+            }
+        }
+
+        if (!empty($where)) {
+            $query[] = 'WHERE ' . implode(' AND ', $where);
+        }
+
+        if (array_key_exists('limit', $options)) {
+            $query[] = 'LIMIT ' . intval($options['limit']);
+        }
+
+        $query_string = implode(' ', $query);
+        Logger::log(LOG_INFO, 'SQL query:', $query_string, $in_args);
+
+        $sth = $this->db->prepare($query_string);
+        $sth->execute($in_args);
+        return $sth;
+    }
+
     public function __construct()
     {
         Logger::init('database.php');
@@ -157,6 +206,22 @@ class Database
     public function getStatisticsUpdateTimestamps()
     {
         return $this->get_timestamps('owner_id', 'modified', 'statistics');
+    }
+
+    public function getStatisticsHistory($id)
+    {
+        $sth = $this->select('statistics_history',
+            ['counter', 'time', 'value'],
+            [
+                'where' => ['owner_id' => $id],
+                'types' => ['time' => 'time'],
+            ]);
+        $result = [];
+        while ($row = $sth->fetch(PDO::FETCH_ASSOC)) {
+            $row['time'] = gmdate(self::DATE_JS, $row['time']);
+            array_push($result, $row);
+        }
+        return $result;
     }
 
     public function getChannels()
