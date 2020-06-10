@@ -10,8 +10,10 @@ class Database
 
     private function get_timestamps($id_name, $timestamp_name, $table_name)
     {
-        $sth = $this->db->
-            prepare("SELECT $id_name, UNIX_TIMESTAMP(MAX($timestamp_name)) AS $timestamp_name FROM $table_name GROUP BY $id_name FOR UPDATE");
+        $query = "SELECT $id_name, UNIX_TIMESTAMP(MAX($timestamp_name)) AS $timestamp_name FROM $table_name ".
+            "WHERE deleted is NULL GROUP BY $id_name FOR UPDATE";
+        Logger::log(LOG_DEBUG, 'executing query', $query);
+        $sth = $this->db-> prepare($query);
         $sth->execute();
         $result = [];
         while ($row = $sth->fetch(PDO::FETCH_ASSOC)) {
@@ -280,7 +282,7 @@ class Database
     public function getChannelVideoList($channel_id, $details = false)
     {
         $sth = $this->db->prepare('SELECT id, channel_id AS channelId, title, description, UNIX_TIMESTAMP(created) AS created ' .
-            'FROM videos WHERE channel_id = :channel_id ORDER BY created DESC');
+            'FROM videos WHERE channel_id = :channel_id AND deleted IS NULL ORDER BY created DESC');
         $sth->execute(['channel_id' => $channel_id]);
         $videos = [];
         while ($row = $sth->fetch(PDO::FETCH_ASSOC)) {
