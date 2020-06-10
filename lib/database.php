@@ -219,6 +219,7 @@ class Database
         $result = [];
         while ($row = $sth->fetch(PDO::FETCH_ASSOC)) {
             $row['time'] = gmdate(self::DATE_JS, $row['time']);
+            $row['value'] = intval($row['value']);
             array_push($result, $row);
         }
         return $result;
