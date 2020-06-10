@@ -77,9 +77,13 @@ class Cron
             $last_updated = $this->db->getStatisticsUpdateTimestamps();
             foreach ($this->db->getObjectCreated($type) as $id => $created) {
                 if ($this->shouldSaveStatistics($id, $type, $created, $last_updated[$id])) {
-                    Logger::log(LOG_INFO, 'saving statistics for', $type, $id);
-                    $channel = $this->youtube->getObject($id, $type, 'statistics');
-                    $this->db->saveStatistics($id, $channel['statistics']);
+                    try {
+                        Logger::log(LOG_INFO, 'saving statistics for', $type, $id);
+                        $channel = $this->youtube->getObject($id, $type, 'statistics');
+                        $this->db->saveStatistics($id, $channel['statistics']);
+                    } catch (Exception $ex) {
+                        Logger::log(LOG_ERR, 'got exception in saveStatistics', $type, $ex->getMessage());
+                    }
                 }
             }
         } catch (Exception $ex) {
